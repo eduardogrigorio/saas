@@ -1,17 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <title>Grigflix · Login</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <div class="login-brand">🔥 Grig<span>flix</span></div>
     <h1>Login</h1>
     {% if error %}
-        <p style="color: red;">{{ error }}</p>
+        <p class="error-msg">{{ error }}</p>
     {% endif %}
     <form method="post" action="/login">
-        <input type="text" name="username" placeholder="Usuário" required><br>
-        <input type="password" name="password" placeholder="Senha" required><br>
+        <input type="text" name="username" placeholder="Usuário" required>
+        <input type="password" name="password" placeholder="Senha" required>
         <button type="submit">Entrar</button>
     </form>
 </body>
