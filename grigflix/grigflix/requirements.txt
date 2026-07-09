@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-jinja2
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
-psycopg2-binary
