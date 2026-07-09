@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Filmes · Grigflix Admin{% endblock %}
+{% block content %}
+    <div class="content-header">
+        <h1>Filmes</h1>
+        <a href="/admin/movies/new" class="btn-primary">+ Novo filme</a>
+    </div>
+
+    {% if filmes|length == 0 %}
+        <p class="empty-state">Nenhum filme cadastrado ainda.</p>
+    {% else %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Capa</th>
+                    <th>Título</th>
+                    <th>Categoria</th>
+                    <th>Ano</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for filme in filmes %}
+                <tr>
+                    <td>
+                        {% if filme.cover_url %}
+                            <img src="{{ filme.cover_url }}" alt="{{ filme.title }}" class="thumb">
+                        {% else %}
+                            <div class="thumb thumb-placeholder"></div>
+                        {% endif %}
+                    </td>
+                    <td>{{ filme.title }}</td>
+                    <td>{{ filme.category or "-" }}</td>
+                    <td>{{ filme.year or "-" }}</td>
+                    <td class="actions">
+                        <a href="/admin/movies/{{ filme.id }}/edit" class="btn-small">Editar</a>
+                        <form method="post" action="/admin/movies/{{ filme.id }}/delete" onsubmit="return confirm('Excluir este filme?');">
+                            <button type="submit" class="btn-small btn-danger">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
