@@ -314,7 +314,7 @@ async def root():
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {})
 
 
 @app.post("/login")
@@ -323,11 +323,11 @@ async def login(request: Request, username: str = Form(...), password: str = For
     erro = "Usuário ou senha incorretos."
 
     if user is None or not pwd_context.verify(password, user["password_hash"]):
-        return templates.TemplateResponse("login.html", {"request": request, "error": erro})
+        return templates.TemplateResponse(request, "login.html", {"error": erro})
 
     if not user["active"]:
         return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "Usuário desativado. Fale com o administrador."}
+            request, "login.html", {"error": "Usuário desativado. Fale com o administrador."}
         )
 
     token = criar_token(user["username"], user["role"])
@@ -364,9 +364,9 @@ async def dashboard(request: Request, user=Depends(get_current_user)):
     filmes = db_list_movies() if acesso_valido else []
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "username": user["username"],
             "acesso_valido": acesso_valido,
             "expira_em": expira_em,
@@ -386,14 +386,14 @@ async def admin_root(user=Depends(require_admin)):
 async def admin_movies_list(request: Request, user=Depends(require_admin)):
     filmes = db_list_movies()
     return templates.TemplateResponse(
-        "admin/movies.html", {"request": request, "filmes": filmes, "username": user["username"]}
+        request, "admin/movies.html", {"filmes": filmes, "username": user["username"], "active": "movies"}
     )
 
 
 @app.get("/admin/movies/new", response_class=HTMLResponse)
 async def admin_movie_new_form(request: Request, user=Depends(require_admin)):
     return templates.TemplateResponse(
-        "admin/movie_form.html", {"request": request, "filme": None, "username": user["username"]}
+        request, "admin/movie_form.html", {"filme": None, "username": user["username"], "active": "movies"}
     )
 
 
@@ -417,7 +417,7 @@ async def admin_movie_edit_form(request: Request, movie_id: int, user=Depends(re
     if filme is None:
         raise HTTPException(status_code=404, detail="Filme não encontrado")
     return templates.TemplateResponse(
-        "admin/movie_form.html", {"request": request, "filme": filme, "username": user["username"]}
+        request, "admin/movie_form.html", {"filme": filme, "username": user["username"], "active": "movies"}
     )
 
 
@@ -448,15 +448,16 @@ async def admin_movie_delete(movie_id: int, user=Depends(require_admin)):
 async def admin_users_list(request: Request, user=Depends(require_admin)):
     usuarios = db_list_users()
     return templates.TemplateResponse(
+        request,
         "admin/users.html",
-        {"request": request, "usuarios": usuarios, "username": user["username"], "agora": datetime.utcnow()},
+        {"usuarios": usuarios, "username": user["username"], "agora": datetime.utcnow(), "active": "users"},
     )
 
 
 @app.get("/admin/users/new", response_class=HTMLResponse)
 async def admin_user_new_form(request: Request, user=Depends(require_admin)):
     return templates.TemplateResponse(
-        "admin/user_form.html", {"request": request, "usuario": None, "username": user["username"]}
+        request, "admin/user_form.html", {"usuario": None, "username": user["username"], "active": "users"}
     )
 
 
@@ -471,11 +472,12 @@ async def admin_user_new(
 ):
     if db_get_user_by_username(username) is not None:
         return templates.TemplateResponse(
+            request,
             "admin/user_form.html",
             {
-                "request": request,
                 "usuario": None,
                 "username": user["username"],
+                "active": "users",
                 "error": "Já existe um usuário com esse nome.",
             },
         )
@@ -491,7 +493,7 @@ async def admin_user_edit_form(request: Request, user_id: int, user=Depends(requ
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return templates.TemplateResponse(
-        "admin/user_form.html", {"request": request, "usuario": usuario, "username": user["username"]}
+        request, "admin/user_form.html", {"usuario": usuario, "username": user["username"], "active": "users"}
     )
 
 
