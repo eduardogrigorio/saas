@@ -1,48 +1,456 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" class="gflix-body">
 <head>
     <meta charset="UTF-8">
-    <title>Grigflix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grigflix | Streaming</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="catalog-body">
-    <header class="catalog-header">
-        <div class="brand">Grig<span>flix</span></div>
-        <div class="header-right">
-            <span>{{ username }}</span>
-            <a href="/logout" class="logout-link">Sair</a>
+<body>
+
+<div class="g-app-shell">
+    <div class="g-noise-overlay" aria-hidden="true"></div>
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="g-header" id="gHeader" role="banner">
+        <a href="/" class="g-logo">GRIG<span>FLIX</span></a>
+        
+        <button class="g-mobile-toggle" id="gMobileToggle" aria-label="Menu" onclick="toggleMobileNav()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+
+        <nav aria-label="Navegacao">
+            <ul class="g-nav-list" id="gNavList">
+                <li><a class="g-nav-link g-nav-link--active" href="/">Dashboard</a></li>
+                <li><a class="g-nav-link" href="/movies">Filmes</a></li>
+                {% if current_user.is_admin %}
+                <li><a class="g-nav-link" href="/admin">Admin</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+
+        <div class="g-header-actions">
+            <span style="color: var(--g-text-secondary, #a0a0ae); font-size: 14px; font-weight: 600;">{{ username }}</span>
+            <div class="g-avatar" role="button" tabindex="0" title="Perfil">
+                <div class="g-avatar-inner">{{ username[0:2].upper() }}</div>
+            </div>
+            <a href="/logout" class="g-icon-btn" title="Sair" style="text-decoration:none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </a>
         </div>
     </header>
 
-    <main class="catalog-main">
-        {% if not acesso_valido %}
-            <div class="expired-box">
-                <h2>Seu acesso expirou</h2>
-                <p>Entre em contato para renovar sua assinatura e continuar assistindo.</p>
-            </div>
-        {% elif filmes|length == 0 %}
-            <p class="empty-state">Nenhum filme disponível no momento.</p>
+    <!-- ==================== HERO BANNER ==================== -->
+    <section class="g-hero" aria-label="Destaque">
+        {% if featured_movie %}
+        <div class="g-hero__bg" style="background-image: url('{{ featured_movie.cover_url or featured_movie.backdrop_url or "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1920&q=80" }}');"></div>
         {% else %}
-            <p class="access-info">Acesso válido até {{ expira_em.strftime('%d/%m/%Y') }}</p>
-            <div class="video-grid">
-                {% for filme in filmes %}
-                <div class="movie-card">
-                    {% if filme.cover_url %}
-                        <img src="{{ filme.cover_url }}" alt="{{ filme.title }}">
-                    {% else %}
-                        <div class="thumb thumb-placeholder"></div>
-                    {% endif %}
-                    <div class="movie-card-body">
-                        <h3>{{ filme.title }}</h3>
-                        <p class="movie-meta">{{ filme.category or "" }} {% if filme.year %}· {{ filme.year }}{% endif %}</p>
-                        {% if filme.video_url %}
-                            <a href="{{ filme.video_url }}" target="_blank" class="btn-small">Assistir</a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+        <div class="g-hero__bg" style="background-image: url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1920&q=80');"></div>
         {% endif %}
+        <div class="g-hero__gradient"></div>
+        <div class="g-hero__vignette"></div>
+        
+        <div class="g-hero__content">
+            <div class="g-badge g-anim-up">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                Original Grigflix
+            </div>
+            
+            <h1 class="g-hero__title g-anim-up g-delay-1">
+                {{ featured_movie.title if featured_movie else "Bem-vindo ao Grigflix" }}
+            </h1>
+            
+            <div class="g-meta-row g-anim-up g-delay-2">
+                <span class="g-match-score">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15,8.5 22,9.3 17,14 18.2,21 12,17.8 5.8,21 7,14 2,9.3 9,8.5"/></svg>
+                    {{ featured_movie.match_percent|default(98) }}%
+                </span>
+                {% if featured_movie.year %}<span>{{ featured_movie.year }}</span>{% endif %}
+                {% if featured_movie.duration %}<span>{{ featured_movie.duration }}min</span>{% endif %}
+                <span class="g-tag g-tag--quality">HD</span>
+            </div>
+
+            {% if featured_movie.description %}
+            <p class="g-hero__desc g-anim-up g-delay-3">{{ featured_movie.description }}</p>
+            {% else %}
+            <p class="g-hero__desc g-anim-up g-delay-3">Sua plataforma de streaming favorita. Assista aos melhores filmes quando e onde quiser.</p>
+            {% endif %}
+
+            <div class="g-hero__actions g-anim-up g-delay-4">
+                {% if featured_movie and featured_movie.video_url %}
+                <a href="{{ featured_video_url }}" target="_blank" class="g-btn g-btn--primary">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="black"><polygon points="6,3 20,12 6,21"/></svg>
+                    Assistir Agora
+                </a>
+                {% else %}
+                <button class="g-btn g-btn--primary" onclick="alert('Em breve!')">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="black"><polygon points="6,3 20,12 6,21"/></svg>
+                    Assistir Agora
+                </button>
+                {% endif %}
+                <button class="g-btn g-btn--secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    Mais Informacoes
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== CATEGORIES ==================== -->
+    <nav class="g-categories" role="tablist" aria-label="Categorias">
+        <div class="g-cat-scroll" id="gCatScroll"></div>
+    </nav>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="g-main">
+
+        {% if not acesso_valido %}
+        <!-- Estado: Acesso Expirado -->
+        <section class="g-section" style="padding-top: 40px;">
+            <div style="max-width: 520px; background: linear-gradient(135deg, rgba(127,29,29,0.15) 0%, rgba(30,41,59,0.9) 100%); border: 1px solid rgba(239,68,68,0.2); border-radius: 20px; padding: 48px 36px; text-align: center;">
+                <div style="width: 72px; height: 72px; margin: 0 auto 24px; border-radius: 50%; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <h2 class="font-display" style="font-size: 1.75rem; color: #fca5a5; margin-bottom: 12px;">Seu acesso expirou</h2>
+                <p style="color: #d1d5db; margin-bottom: 28px; line-height: 1.7;">Entre em contato para renovar sua assinatura e continuar assistindo aos melhores conteudos.</p>
+                <a href="#" class="g-btn g-btn--primary" style="display:inline-flex;margin:0 auto;">Renovar Agora</a>
+            </div>
+        </section>
+
+        {% elif filmes|length == 0 %}
+        <!-- Estado: Vazio -->
+        <section class="g-section" style="padding-top: 40px;">
+            <div style="text-align: center; padding: 80px 20px;">
+                <div style="width: 88px; height: 88px; margin: 0 auto 24px; border-radius: 50%; background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                </div>
+                <h2 class="font-display" style="font-size: 1.5rem; color: #94a3b8; margin-bottom: 12px;">Nenhum filme disponivel</h2>
+                <p style="color: #64748b;">Volte em breve para conferir nosso catalogo atualizado.</p>
+            </div>
+        </section>
+
+        {% else %}
+        <!-- Estado: Conteudo Normal -->
+
+        <!-- Info de Acesso -->
+        <div style="display: flex; align-items: center; gap: 10px; padding: 16px 4px; margin-bottom: 8px; font-size: 14px; color: #00d26a; font-weight: 600;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Acesso valido ate {{ expira_em.strftime('%d/%m/%Y') }}
+        </div>
+
+        <!-- Secao: Todos os Filmes -->
+        <section class="g-section" aria-label="Catalogo Completo">
+            <div class="g-section__header">
+                <h2 class="g-section__heading">CATALOGO COMPLETO</h2>
+                <span style="color: #6b6b7b; font-size: 13px;">{{ filmes|length }} {{ 'filmes' if filmes|length != 1 else 'filme' }} disponiveis</span>
+            </div>
+            <div class="g-carousel">
+                <button class="g-carousel__nav g-carousel__nav--prev" onclick="slideCarousel(this,-1)" aria-label="Anterior">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg>
+                </button>
+                <div class="g-carousel__track" id="gTrackAllMovies">
+                    {% for filme in filmes %}
+                    <article class="g-card g-anim-scale" style="animation-delay: {{ loop.index * 0.04 | min(0.3) }}s">
+                        <div class="g-card__poster">
+                            {% if filme.cover_url %}
+                            <img class="g-card__img" src="{{ filme.cover_url }}" alt="{{ filme.title }}" loading="lazy"
+                                 onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1c1f28,#181b22)'">
+                            {% else %}
+                            <div style="width:100%;height:100%;background:linear-gradient(135deg,#1c1f28 0%,#2d3748 100%);display:flex;align-items:center;justify-content:center;">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="g-card__overlay">
+                                <div class="g-card__name">{{ filme.title }}</div>
+                                <div style="font-size: 12px; color: #a0a0ae; margin-bottom: 10px;">
+                                    {{ filme.category or "Geral" }}{% if filme.year %} · {{ filme.year }}{% endif %}{% if filme.duration %} · {{ filme.duration }}min{% endif %}
+                                </div>
+                                <div class="g-card__actions">
+                                    {% if filme.video_url %}
+                                    <a href="{{ filme.video_url }}" target="_blank" class="g-card__btn g-card__btn--play" onclick="event.stopPropagation();" aria-label="Assistir">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="black"><polygon points="6,4 20,12 6,20"/></svg>
+                                    </a>
+                                    {% else %}
+                                    <button class="g-card__btn g-card__btn--play" onclick="event.stopPropagation();openPlayer({{ loop.index }})" aria-label="Assistir">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="black"><polygon points="6,4 20,12 6,20"/></svg>
+                                    </button>
+                                    {% endif %}
+                                    <button class="g-card__btn" onclick="event.stopPropagation();" aria-label="Mais">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                <button class="g-carousel__nav g-carousel__nav--next" onclick="slideCarousel(this,1)" aria-label="Proximo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>
+                </button>
+            </div>
+        </section>
+
+        {% endif %}
+
     </main>
+</div>
+
+<!-- ==================== PLAYER MODAL ==================== -->
+<div class="g-player-modal" id="gPlayerModal" role="dialog" aria-modal="true">
+    <div class="g-player">
+        <button class="g-player__close" onclick="closePlayer()" aria-label="Fechar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="g-player__screen">
+            <div style="text-align:center;padding:20px;">
+                <button class="g-player__big-play" id="gBigPlayBtn" onclick="togglePlay()">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+                <h2 class="font-display text-4xl mt-6 tracking-wide" id="gPlayerTitle">FILME TITULO</h2>
+                <p class="text-white/50 mt-2 text-sm" id="gPlayerInfo">Categoria • Ano • Duracao</p>
+            </div>
+        </div>
+        <div class="g-player__controls">
+            <div class="g-seek-bar" id="gSeekBar" onclick="handleSeek(event)">
+                <div class="g-seek-bar__fill" id="gSeekFill" style="width:0%"></div>
+            </div>
+            <div class="g-controls-row">
+                <div class="g-controls-group">
+                    <button class="g-ctrl-btn" onclick="togglePlay()" id="gPlayPauseBtn" aria-label="Play/Pause">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" id="gPlayIcon"><polygon points="6,4 20,12 6,20"/></svg>
+                    </button>
+                    <button class="g-ctrl-btn" onclick="skipTime(-10)" aria-label="-10s">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                        <span style="font-size:11px;margin-left:3px;font-weight:600;">10</span>
+                    </button>
+                    <button class="g-ctrl-btn" onclick="skipTime(10)" aria-label="+10s">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        <span style="font-size:11px;margin-left:3px;font-weight:600;">10</span>
+                    </button>
+                    <span class="g-time-display" id="gTimeDisplay">00:00 / 00:00</span>
+                </div>
+                <div class="g-controls-group">
+                    <button class="g-ctrl-btn" id="gFavBtn" onclick="toggleFavPlayer()" aria-label="Favoritar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="gHeartIcon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </button>
+                    <select class="g-speed-select" onchange="setSpeed(this.value)" aria-label="Velocidade">
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========== DADOS DO BACKEND ==========
+const G_MOVIES = [
+    {% for filme in filmes %}
+    {
+        id: {{ loop.index }},
+        title: "{{ filme.title }}",
+        category: "{{ filme.category or 'geral' }}",
+        year: {{ filme.year or 2024 }},
+        duration: {{ filme.duration or 120 }},
+        coverUrl: "{{ filme.cover_url or '' }}",
+        videoUrl: "{{ filme.video_url or '' }}"
+    },
+    {% endfor %}
+];
+
+const G_CATEGORIES = [
+    {id:'todos',label:'Todos'}, {id:'favoritos',label:'Favoritos'},
+    {id:'assistindo',label:'Continuar Assistindo'}, {id:'concluidos',label:'Concluidos'}
+];
+
+// Recuperar categorias unicas dos filmes
+const catsFromDb = [...new Set(G_MOVIES.map(m => m.category))];
+catsFromDb.forEach(c => {
+    if(!G_CATEGORIES.find(x => x.id === c)) G_CATEGORIES.push({id:c, label: c.charAt(0).toUpperCase() + c.slice(1)});
+});
+
+let gUserState = { favorites: [], progress: {} };
+let gPlayer = {movie:null, playing:false, currentTime:0, totalTime:0, speed:1, timer:null};
+let gActiveCategory = 'todos';
+
+// ========== INIT ==========
+function gInit(){
+    gRestoreState();
+    gRenderCategories();
+    gSetupHeader();
+    gRegisterKeys();
+}
+
+function gRestoreState(){
+    const s=localStorage.getItem('grigflix_v3');
+    if(s){try{gUserState=JSON.parse(s);}catch(e){}}
+}
+function gPersistState(){localStorage.setItem('grigflix_v3',JSON.stringify(gUserState));}
+
+// ========== RENDER ==========
+function gRenderCategories(){
+    const el=document.getElementById('gCatScroll');
+    if(!el)return;
+    el.innerHTML=G_CATEGORIES.map(c=>`<button class="g-cat-pill ${gActiveCategory===c.id?'g-cat-pill--active':''}" onclick="gSelectCat('${c.id}')">${c.label}</button>`).join('');
+}
+
+function gGetFiltered(id){
+    switch(id){
+        case 'favoritos':return G_MOVIES.filter(m=>gUserState.favorites.includes(m.id));
+        case 'assistindo':return G_MOVIES.filter(m=>{const p=gUserState.progress[m.id];return p&&!p.completed&&p.current>0;});
+        case 'concluidos':return G_MOVIES.filter(m=>gUserState.progress[m.id]?.completed);
+        default:return id!=='todos'?G_MOVIES.filter(m=>m.category===id):G_MOVIES;
+    }
+}
+
+// ========== NAV ==========
+function gSelectCat(id){
+    gActiveCategory=id;
+    gRenderCategories();
+    // Re-renderiza track principal baseado na categoria
+    const filtered=gGetFiltered(id);
+    const track=document.getElementById('gTrackAllMovies');
+    if(track && filtered.length > 0){
+        // Aqui poderia re-renderizar apenas os cards filtrados
+        console.log(`Categoria ${id}: ${filtered.length} filmes`);
+    }
+}
+
+function slideCarousel(btn,dir){
+    btn.parentElement.querySelector('.g-carousel__track').scrollBy({
+        left:btn.parentElement.querySelector('.g-carousel__track').clientWidth*0.72*dir,
+        behavior:'smooth'
+    });
+}
+
+function toggleMobileNav(){document.getElementById('gNavList').classList.toggle('g-open');}
+
+function gSetupHeader(){
+    const h=document.getElementById('gHeader');
+    let t=false;
+    window.addEventListener('scroll',()=>{
+        if(!t){
+            requestAnimationFrame(()=>{h.classList.toggle('g-header--scrolled',window.scrollY>60);t=false;});
+            t=true;
+        }
+    });
+}
+
+// ========== PLAYER ==========
+function openPlayer(id){
+    const m=G_MOVIES[id-1];
+    if(!m)return;
+    gPlayer.movie=m;
+    gPlayer.totalTime=(m.duration||120)*60;
+    const s=gUserState.progress[m.id];
+    gPlayer.currentTime=(s&&!s.completed)?s.current*60:0;
+    
+    document.getElementById('gPlayerTitle').textContent=m.title.toUpperCase();
+    document.getElementById('gPlayerInfo').textContent=`${m.category.charAt(0).toUpperCase()+m.category.slice(1)} · ${m.year} · ${m.duration||120}min`;
+    
+    gSyncFavUI();
+    gRefreshTime();
+    document.getElementById('gPlayerModal').classList.add('g-player-modal--visible');
+    document.body.style.overflow='hidden';
+}
+
+function closePlayer(){
+    gSavePos();
+    gStopPlay();
+    document.getElementById('gPlayerModal').classList.remove('g-player-modal--visible');
+    document.body.style.overflow='';
+}
+
+function togglePlay(){gPlayer.playing?gPause():gPlay();}
+function gPlay(){
+    gPlayer.playing=true;
+    gUpdateIcon(true);
+    gPlayer.timer=setInterval(()=>{
+        gPlayer.currentTime+=gPlayer.speed;
+        if(gPlayer.currentTime>=gPlayer.totalTime){
+            gPlayer.currentTime=gPlayer.totalTime;
+            gMarkDone();gPause();return;
+        }
+        gRefreshTime();
+        if(Math.floor(gPlayer.currentTime)%15===0)gSavePos();
+    },1000);
+}
+function gPause(){
+    gPlayer.playing=false;
+    gUpdateIcon(false);
+    clearInterval(gPlayer.timer);
+    gPlayer.timer=null;
+    gSavePos();
+}
+function skipTime(s){gPlayer.currentTime=Math.max(0,Math.min(gPlayer.currentTime+s,gPlayer.totalTime));gRefreshTime();gSavePos();}
+function handleSeek(e){
+    const w=document.getElementById('gSeekBar'),r=w.getBoundingClientRect();
+    gPlayer.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*gPlayer.totalTime;
+    gRefreshTime();gSavePos();
+}
+function setSpeed(v){gPlayer.speed=parseFloat(v);}
+function toggleFavFromPlayer(){if(!gPlayer.movie)return;gToggleFav(gPlayer.movie.id);gSyncFavUI();}
+function gToggleFav(id){
+    const i=gUserState.favorites.indexOf(id);
+    i>-1?gUserState.favorites.splice(i,1):gUserState.favorites.push(id);
+    gPersistState();
+}
+function gMarkDone(){
+    if(!gPlayer.movie)return;
+    const id=gPlayer.movie.id;
+    gUserState.progress[id]={...gUserState.progress[id],current:gPlayer.movie.duration,total:gPlayer.movie.duration,completed:true,lastWatched:Date.now()};
+    gPersistState();
+}
+function gSavePos(){
+    if(!gPlayer.movie)return;
+    const id=gPlayer.movie.id;
+    gUserState.progress[id]={current:Math.round(gPlayer.currentTime/60),total:gPlayer.movie.duration||120,lastWatched:Date.now(),completed:gUserState.progress[id]?.completed||false};
+    gPersistState();
+}
+function gUpdateIcon(on){document.getElementById('gPlayIcon').innerHTML=on?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>':'<polygon points="6,4 20,12 6,20"/>';}
+function gRefreshTime(){
+    const pct=(gPlayer.currentTime/gPlayer.totalTime)*100;
+    document.getElementById('gSeekFill').style.width=pct+'%';
+    document.getElementById('gTimeDisplay').textContent=`${gFmtTs(gPlayer.currentTime)} / ${gFmtTs(gPlayer.totalTime)}`;
+}
+function gSyncFavUI(){
+    if(!gPlayer.movie)return;
+    const isFav=gUserState.favorites.includes(gPlayer.movie.id);
+    const icon=document.getElementById('gHeartIcon');
+    icon.setAttribute('fill',isFav?'#ffb800':'none');
+    icon.setAttribute('stroke',isFav?'#ffb800':'white');
+}
+function gStopPlay(){gPause();gPlayer.currentTime=0;}
+function gFmtTs(s){
+    const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60);
+    return h>0?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function gRegisterKeys(){
+    document.addEventListener('keydown',e=>{
+        const m=document.getElementById('gPlayerModal');
+        if(!m.classList.contains('g-player-modal--visible'))return;
+        switch(e.key.toLowerCase()){
+            case' ':case'k':e.preventDefault();togglePlay();break;
+            case'arrowright':skipTime(10);break;
+            case'arrowleft':skipTime(-10);break;
+            case'escape':closePlayer();break;
+            case'f':toggleFavFromPlayer();break;
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded',gInit);
+</script>
+
 </body>
 </html>
